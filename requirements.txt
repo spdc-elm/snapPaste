@@ -9,5 +9,8 @@ qrcode>=7.0
 # 图片处理（内存操作）
 Pillow>=9.0.0
 
+# HTTPS 证书生成
+cryptography>=3.0
+
 # Windows 剪贴板（仅 Windows 平台需要）
 pywin32>=300; sys_platform == 'win32'

@@ -27,3 +27,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# SSL 证书（自动生成）
+certs/

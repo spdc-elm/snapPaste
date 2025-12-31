@@ -6,6 +6,8 @@ SnapPaste 电脑端服务器
 
 import os
 import sys
+import ssl
+import ipaddress
 
 # 添加 server 目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,8 +21,9 @@ from clipboard import image_to_clipboard, decode_base64_image
 
 
 # 配置
-PORT = 8080
+PORT = 8443  # HTTPS 默认用 8443
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+CERT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "certs")
 
 # 创建 Flask 应用
 app = Flask(__name__, static_folder=STATIC_DIR)
@@ -131,12 +134,14 @@ def print_qrcode(url: str):
     print(qr_str.getvalue())
 
 
-def print_banner(url: str):
+def print_banner(url: str, is_https: bool = False):
     """打印启动信息"""
     print("\n" + "=" * 50)
     print("  SnapPaste - 手机拍照，电脑粘贴")
     print("=" * 50)
     print(f"\n  服务器地址: {url}")
+    if is_https:
+        print("\n  [HTTPS 模式] 首次访问需信任证书")
     print("\n  用手机扫描下方二维码连接:\n")
     print_qrcode(url)
     print(f"\n  或在手机浏览器打开: {url}")
@@ -144,27 +149,132 @@ def print_banner(url: str):
     print("=" * 50 + "\n")
 
 
+def generate_self_signed_cert():
+    """生成自签名证书（如果不存在）"""
+    cert_file = os.path.join(CERT_DIR, "cert.pem")
+    key_file = os.path.join(CERT_DIR, "key.pem")
+    
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        return cert_file, key_file
+    
+    # 创建证书目录
+    os.makedirs(CERT_DIR, exist_ok=True)
+    
+    try:
+        from cryptography import x509
+        from cryptography.x509.oid import NameOID
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from datetime import datetime, timedelta
+        
+        # 生成私钥
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        
+        # 获取本机 IP
+        ip = get_local_ip()
+        
+        # 生成证书
+        subject = issuer = x509.Name([
+            x509.NameAttribute(NameOID.COMMON_NAME, f"SnapPaste ({ip})"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "SnapPaste"),
+        ])
+        
+        # 添加 SAN（Subject Alternative Name）以支持 IP 访问
+        san = x509.SubjectAlternativeName([
+            x509.DNSName("localhost"),
+            x509.IPAddress(ipaddress.IPv4Address(ip)),
+            x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
+        ])
+        
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.utcnow())
+            .not_valid_after(datetime.utcnow() + timedelta(days=365))
+            .add_extension(san, critical=False)
+            .sign(key, hashes.SHA256())
+        )
+        
+        # 保存私钥
+        with open(key_file, "wb") as f:
+            f.write(key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()
+            ))
+        
+        # 保存证书
+        with open(cert_file, "wb") as f:
+            f.write(cert.public_bytes(serialization.Encoding.PEM))
+        
+        print(f"[INFO] 已生成自签名证书: {cert_file}")
+        return cert_file, key_file
+        
+    except ImportError:
+        print("[WARN] 未安装 cryptography，无法生成证书")
+        print("[WARN] 请运行: pip install cryptography")
+        return None, None
+
+
 def main():
     """主函数"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="SnapPaste 服务器")
+    parser.add_argument("--no-https", action="store_true", help="使用 HTTP 模式（不推荐）")
+    parser.add_argument("--port", type=int, default=None, help="端口号")
+    args = parser.parse_args()
+    
     # 获取局域网 IP
     ip = get_local_ip()
-    url = get_server_url(ip, PORT)
     
     # 确保静态目录存在
     if not os.path.exists(STATIC_DIR):
         os.makedirs(STATIC_DIR)
         print(f"[INFO] Created static directory: {STATIC_DIR}")
     
-    # 打印启动信息和二维码
-    print_banner(url)
+    use_https = not args.no_https
+    port = args.port or (8443 if use_https else 8080)
     
-    # 启动服务器
-    app.run(
-        host="0.0.0.0",  # 监听所有网络接口
-        port=PORT,
-        debug=False,
-        threaded=True
-    )
+    if use_https:
+        # 尝试生成/加载证书
+        cert_file, key_file = generate_self_signed_cert()
+        
+        if cert_file and key_file:
+            url = f"https://{ip}:{port}"
+            print_banner(url, is_https=True)
+            
+            # 创建 SSL 上下文
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.load_cert_chain(cert_file, key_file)
+            
+            # 启动 HTTPS 服务器
+            app.run(
+                host="0.0.0.0",
+                port=port,
+                debug=False,
+                threaded=True,
+                ssl_context=context
+            )
+        else:
+            print("[WARN] 证书不可用，回退到 HTTP 模式")
+            use_https = False
+    
+    if not use_https:
+        url = f"http://{ip}:{port}"
+        print_banner(url, is_https=False)
+        print("\n  [警告] HTTP 模式下，手机浏览器可能无法调用摄像头")
+        print("  [提示] 可使用文件选择器作为备选方案\n")
+        
+        app.run(
+            host="0.0.0.0",
+            port=port,
+            debug=False,
+            threaded=True
+        )
 
 
 if __name__ == "__main__":
