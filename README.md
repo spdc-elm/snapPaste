@@ -1,25 +1,27 @@
 # SnapPaste
 
-手机拍照，电脑粘贴 - 局域网直传，亚秒级延迟
+手机拍照，电脑粘贴 — 局域网直传，亚秒级延迟
 
 ## 特性
 
-- **快** - 局域网直传，图片不落盘，直接进剪贴板
-- **简单** - 扫码即连，无需安装 App
-- **流畅** - 拍完即传，无需二次确认
-- **安全** - HTTPS 加密，自动生成证书
+- **快** — 局域网直传，图片不落盘，直接进剪贴板
+- **简单** — 扫码即连，无需安装 App，纯浏览器 PWA
+- **可编辑** — 拍照后支持旋转、裁剪，满意后再发送
+- **可缩放** — 支持摄像头缩放控制，拍摄更灵活
+- **安全** — HTTPS 加密传输，自动生成证书
 
 ## 快速开始
 
 ```bash
+# 克隆仓库
+git clone https://github.com/spdc-elm/snapPaste.git
+cd snapPaste
+
 # 安装依赖
 pip install -r requirements.txt
 
-# 启动服务器（HTTPS 模式，推荐）
+# 启动服务器
 python run.py
-
-# 或使用 HTTP 模式（摄像头可能不可用）
-python run.py --no-https
 ```
 
 启动后终端会显示二维码，手机扫码即可使用。
@@ -28,15 +30,16 @@ python run.py --no-https
 
 1. 电脑运行 `python run.py`
 2. 手机扫描终端显示的二维码
-3. **首次访问**：浏览器会提示证书不安全，点击"高级" → "继续访问"
+3. **首次访问**：浏览器会提示证书不安全，点击「高级」→「继续访问」
 4. 允许摄像头权限
-5. 点击拍照按钮
-6. 图片自动发送到电脑剪贴板
-7. 在电脑上 Ctrl+V 粘贴
+5. 调整缩放（可选），点击拍照按钮
+6. 编辑图片：旋转、裁剪（可选）
+7. 点击 ✓ 发送到电脑剪贴板
+8. 在电脑上 `Ctrl+V` 粘贴
 
 ## 为什么需要 HTTPS？
 
-浏览器安全策略要求：`getUserMedia`（摄像头 API）只能在以下环境使用：
+浏览器安全策略要求：摄像头 API (`getUserMedia`) 只能在以下环境使用：
 - `https://` 任意地址
 - `http://localhost`
 
@@ -66,17 +69,19 @@ python run.py [选项]
 
 ## 依赖
 
-- Flask - Web 服务器
-- qrcode - 二维码生成
-- Pillow - 图片处理
-- cryptography - HTTPS 证书生成
-- pywin32 - Windows 剪贴板（仅 Windows）
+- Flask — Web 服务器
+- qrcode — 二维码生成
+- Pillow — 图片处理
+- cryptography — HTTPS 证书生成
+- pywin32 — Windows 剪贴板（仅 Windows）
 
 ## 架构
 
 ```
-手机 (PWA) ──HTTPS POST──> 电脑 (Flask) ──> 系统剪贴板
+手机 (PWA) ──HTTPS POST──▶ 电脑 (Flask) ──▶ 系统剪贴板
 ```
+
+详细架构文档见 [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## License
 
