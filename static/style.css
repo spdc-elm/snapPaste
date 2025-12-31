@@ -35,7 +35,7 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;  /* contain = 完整显示，cover = 填满裁剪 */
   background: #000;
 }
 
