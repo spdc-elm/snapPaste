@@ -558,6 +558,16 @@ zoomSlider.addEventListener('input', (e) => {
   setZoom(e.target.value);
 });
 
+// 阻止缩放滑块触发浏览器手势
+zoomSlider.addEventListener('touchstart', (e) => {
+  e.stopPropagation();
+}, { passive: true });
+
+zoomSlider.addEventListener('touchmove', (e) => {
+  e.stopPropagation();
+  e.preventDefault();  // 阻止页面滚动/手势
+}, { passive: false });
+
 // 编辑工具栏
 btnRotate.addEventListener('click', rotateImage);
 btnCrop.addEventListener('click', toggleCropMode);

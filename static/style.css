@@ -52,6 +52,7 @@ html, body {
   background: rgba(0, 0, 0, 0.6);
   border-radius: 24px;
   z-index: 10;
+  touch-action: none;  /* 禁用浏览器手势 */
 }
 
 .zoom-label, .zoom-value {
