@@ -558,15 +558,10 @@ zoomSlider.addEventListener('input', (e) => {
   setZoom(e.target.value);
 });
 
-// 阻止缩放滑块触发浏览器手势
-zoomSlider.addEventListener('touchstart', (e) => {
-  e.stopPropagation();
-}, { passive: true });
-
+// 阻止缩放滑块触发浏览器手势（仅阻止垂直方向）
 zoomSlider.addEventListener('touchmove', (e) => {
   e.stopPropagation();
-  e.preventDefault();  // 阻止页面滚动/手势
-}, { passive: false });
+}, { passive: true });
 
 // 编辑工具栏
 btnRotate.addEventListener('click', rotateImage);
