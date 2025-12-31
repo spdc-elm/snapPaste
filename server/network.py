@@ -47,11 +47,15 @@ def _get_ips_windows() -> list:
         current_ip = ""
         has_gateway = False
         
-        for line in result.stdout.split("\n"):
-            line = line.strip()
+        lines = result.stdout.split("\n")
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.strip()
             
-            # 检测适配器名称
-            if line and not line.startswith(" ") and ":" in line:
+            # 适配器名称行：不以空格开头，以冒号结尾
+            # 例如: "无线局域网适配器 WLAN:" 或 "以太网适配器 VMware Network Adapter VMnet1:"
+            if line and not line[0].isspace() and stripped.endswith(":"):
                 # 保存上一个适配器的信息
                 if current_ip:
                     ips.append({
@@ -59,20 +63,26 @@ def _get_ips_windows() -> list:
                         "name": current_adapter,
                         "has_gateway": has_gateway
                     })
-                current_adapter = line.rstrip(":")
+                current_adapter = stripped.rstrip(":")
                 current_ip = ""
                 has_gateway = False
             
-            # 检测 IPv4 地址
-            if "IPv4" in line and ":" in line:
-                match = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+            # 检测 IPv4 地址行
+            # 例如: "   IPv4 地址 . . . . . . . . . . . . : 10.196.7.192(首选)"
+            elif "IPv4" in stripped and ":" in stripped:
+                match = re.search(r":\s*(\d+\.\d+\.\d+\.\d+)", stripped)
                 if match:
                     current_ip = match.group(1)
             
-            # 检测默认网关（非空表示有网关）
-            if "默认网关" in line or "Default Gateway" in line:
-                if re.search(r"\d+\.\d+\.\d+\.\d+", line):
+            # 检测默认网关（有实际 IP 地址表示有网关）
+            # 例如: "   默认网关. . . . . . . . . . . . . : 10.196.0.1"
+            elif ("默认网关" in stripped or "Default Gateway" in stripped) and ":" in stripped:
+                # 检查冒号后面是否有 IP 地址
+                after_colon = stripped.split(":", 1)[-1].strip()
+                if re.match(r"\d+\.\d+\.\d+\.\d+", after_colon):
                     has_gateway = True
+            
+            i += 1
         
         # 保存最后一个适配器
         if current_ip:
