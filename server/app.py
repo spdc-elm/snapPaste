@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify, send_from_directory
 import qrcode
 from io import StringIO
 
-from network import get_local_ip, get_server_url
+from network import get_local_ip, get_server_url, get_all_local_ips
 from clipboard import image_to_clipboard, decode_base64_image
 
 
@@ -134,12 +134,23 @@ def print_qrcode(url: str):
     print(qr_str.getvalue())
 
 
-def print_banner(url: str, is_https: bool = False):
+def print_banner(url: str, is_https: bool = False, all_ips = None):
     """打印启动信息"""
     print("\n" + "=" * 50)
     print("  SnapPaste - 手机拍照，电脑粘贴")
     print("=" * 50)
-    print(f"\n  服务器地址: {url}")
+    
+    # 显示所有可用地址
+    if all_ips and len(all_ips) > 1:
+        protocol = "https" if is_https else "http"
+        port = url.split(":")[-1]
+        print("\n  可用地址:")
+        for ip_info in all_ips:
+            gateway_mark = " <- 推荐" if ip_info["has_gateway"] else ""
+            print(f"    {protocol}://{ip_info['ip']}:{port}  ({ip_info['name']}){gateway_mark}")
+    else:
+        print(f"\n  服务器地址: {url}")
+    
     if is_https:
         print("\n  [HTTPS 模式] 首次访问需信任证书")
     print("\n  用手机扫描下方二维码连接:\n")
@@ -228,7 +239,8 @@ def main():
     parser.add_argument("--port", type=int, default=None, help="端口号")
     args = parser.parse_args()
     
-    # 获取局域网 IP
+    # 获取所有局域网 IP
+    all_ips = get_all_local_ips()
     ip = get_local_ip()
     
     # 确保静态目录存在
@@ -245,7 +257,7 @@ def main():
         
         if cert_file and key_file:
             url = f"https://{ip}:{port}"
-            print_banner(url, is_https=True)
+            print_banner(url, is_https=True, all_ips=all_ips)
             
             # 创建 SSL 上下文
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -265,7 +277,7 @@ def main():
     
     if not use_https:
         url = f"http://{ip}:{port}"
-        print_banner(url, is_https=False)
+        print_banner(url, is_https=False, all_ips=all_ips)
         print("\n  [警告] HTTP 模式下，手机浏览器可能无法调用摄像头")
         print("  [提示] 可使用文件选择器作为备选方案\n")
         
