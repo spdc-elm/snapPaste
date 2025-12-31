@@ -161,9 +161,10 @@ def get_local_ip() -> str:
     获取本机最佳局域网 IP 地址
     
     优先级：
-    1. 有默认网关的接口（真正连接到路由器的）
-    2. 非虚拟机网卡（排除 VMware、VirtualBox 等）
-    3. 第一个可用的局域网 IP
+    1. WLAN/Wi-Fi 接口（手机最可能连接的网络）
+    2. 有默认网关的接口
+    3. 非虚拟机网卡
+    4. 第一个可用的局域网 IP
     """
     ips = get_all_local_ips()
     
@@ -178,20 +179,32 @@ def get_local_ip() -> str:
         except Exception:
             return "127.0.0.1"
     
+    # WLAN/Wi-Fi 关键词
+    wifi_keywords = ["wlan", "wi-fi", "wifi", "wireless", "无线"]
+    
     # 虚拟网卡关键词
     virtual_keywords = ["vmware", "virtualbox", "vbox", "vmnet", "vethernet", 
-                        "docker", "hyper-v", "wsl"]
+                        "docker", "hyper-v", "wsl", "meta"]
+    
+    def is_wifi(name: str) -> bool:
+        name_lower = name.lower()
+        return any(kw in name_lower for kw in wifi_keywords)
     
     def is_virtual(name: str) -> bool:
         name_lower = name.lower()
         return any(kw in name_lower for kw in virtual_keywords)
     
-    # 优先选择：有网关 + 非虚拟
+    # 最优先：WLAN/Wi-Fi 接口
+    for ip_info in ips:
+        if is_wifi(ip_info["name"]) and not is_virtual(ip_info["name"]):
+            return ip_info["ip"]
+    
+    # 次选：有网关 + 非虚拟
     for ip_info in ips:
         if ip_info["has_gateway"] and not is_virtual(ip_info["name"]):
             return ip_info["ip"]
     
-    # 次选：有网关（可能是虚拟机桥接）
+    # 再次：有网关（可能是虚拟机桥接）
     for ip_info in ips:
         if ip_info["has_gateway"]:
             return ip_info["ip"]

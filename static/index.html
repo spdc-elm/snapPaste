@@ -14,17 +14,56 @@
 </head>
 <body>
   <div id="app">
-    <!-- 摄像头预览 -->
-    <video id="camera" autoplay playsinline muted></video>
+    <!-- 摄像头预览模式 -->
+    <div id="camera-view">
+      <video id="camera" autoplay playsinline muted></video>
+      
+      <!-- 缩放控制 -->
+      <div id="zoom-control" class="zoom-control hidden">
+        <span class="zoom-label">1x</span>
+        <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1">
+        <span class="zoom-value">1.0x</span>
+      </div>
+      
+      <!-- 状态提示 -->
+      <div id="status" class="status hidden"></div>
+      
+      <!-- 拍照按钮 -->
+      <div class="controls">
+        <button id="capture" class="capture-btn" aria-label="拍照">
+          <span class="capture-inner"></span>
+        </button>
+      </div>
+    </div>
     
-    <!-- 状态提示 -->
-    <div id="status" class="status hidden"></div>
-    
-    <!-- 拍照按钮 -->
-    <div class="controls">
-      <button id="capture" class="capture-btn" aria-label="拍照">
-        <span class="capture-inner"></span>
-      </button>
+    <!-- 编辑模式 -->
+    <div id="edit-view" class="hidden">
+      <div class="edit-canvas-container">
+        <canvas id="edit-canvas"></canvas>
+        <!-- 裁剪框 -->
+        <div id="crop-box" class="crop-box hidden">
+          <div class="crop-handle tl"></div>
+          <div class="crop-handle tr"></div>
+          <div class="crop-handle bl"></div>
+          <div class="crop-handle br"></div>
+        </div>
+      </div>
+      
+      <!-- 编辑工具栏 -->
+      <div class="edit-toolbar">
+        <button id="btn-rotate" class="edit-btn" title="旋转90°">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.49-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.75-.87-1.59-1.01-2.47zm1.01 5.32c1.16.9 2.51 1.44 3.9 1.61V17.9c-.87-.15-1.71-.49-2.46-1.03L7.1 18.32zM13 4.07V1L8.45 5.55 13 10V6.09c2.84.48 5 2.94 5 5.91s-2.16 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93s-3.05-7.44-7-7.93z"/></svg>
+        </button>
+        <button id="btn-crop" class="edit-btn" title="裁剪">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/></svg>
+        </button>
+        <button id="btn-cancel" class="edit-btn cancel" title="取消">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+        <button id="btn-confirm" class="edit-btn confirm" title="发送">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        </button>
+      </div>
     </div>
     
     <!-- 隐藏的 canvas 用于处理图片 -->

@@ -9,17 +9,26 @@ html, body {
   overflow: hidden;
   background: #1a1a1a;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  touch-action: manipulation;
 }
 
 #app {
   position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
-/* 摄像头预览 */
+.hidden {
+  display: none !important;
+}
+
+/* ============ 相机视图 ============ */
+#camera-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 #camera {
   position: absolute;
   top: 0;
@@ -28,6 +37,59 @@ html, body {
   height: 100%;
   object-fit: cover;
   background: #000;
+}
+
+/* 缩放控制 */
+.zoom-control {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 24px;
+  z-index: 10;
+}
+
+.zoom-label, .zoom-value {
+  font-size: 14px;
+  color: #fff;
+  min-width: 36px;
+}
+
+.zoom-value {
+  text-align: right;
+}
+
+#zoom-slider {
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  outline: none;
+}
+
+#zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#zoom-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
 }
 
 /* 控制区域 */
@@ -80,21 +142,10 @@ html, body {
   background: #ccc;
 }
 
-/* 发送中状态 */
-.capture-btn.sending .capture-inner {
-  background: #00d26a;
-  animation: pulse 0.8s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.9); opacity: 0.7; }
-}
-
 /* 状态提示 */
 .status {
   position: absolute;
-  top: 60px;
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 24px;
@@ -124,7 +175,132 @@ html, body {
   background: rgba(255, 59, 48, 0.9);
 }
 
-/* 错误覆盖层 */
+/* 闪光效果 */
+.flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.flash.active {
+  animation: flash 0.15s ease-out;
+}
+
+@keyframes flash {
+  0% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+/* ============ 编辑视图 ============ */
+#edit-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+}
+
+.edit-canvas-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+#edit-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 裁剪框 */
+.crop-box {
+  position: absolute;
+  border: 2px solid #00d26a;
+  background: transparent;
+  cursor: move;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.crop-handle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: #00d26a;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.crop-handle.tl { top: 0; left: 0; cursor: nwse-resize; }
+.crop-handle.tr { top: 0; right: 0; transform: translate(50%, -50%); cursor: nesw-resize; }
+.crop-handle.bl { bottom: 0; left: 0; transform: translate(-50%, 50%); cursor: nesw-resize; }
+.crop-handle.br { bottom: 0; right: 0; transform: translate(50%, 50%); cursor: nwse-resize; }
+
+/* 编辑工具栏 */
+.edit-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: #222;
+}
+
+.edit-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.edit-btn:active {
+  transform: scale(0.92);
+  background: #444;
+}
+
+.edit-btn.active {
+  background: #00d26a;
+}
+
+.edit-btn.cancel {
+  background: #444;
+}
+
+.edit-btn.confirm {
+  background: #00d26a;
+  width: 64px;
+  height: 64px;
+}
+
+.edit-btn.confirm:active {
+  background: #00b359;
+}
+
+.edit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============ 错误覆盖层 ============ */
 .error-overlay {
   position: absolute;
   top: 0;
@@ -178,7 +354,7 @@ html, body {
   background: #00b359;
 }
 
-/* 备选文件选择提示 */
+/* 备选文件选择 */
 .fallback-hint {
   margin-top: 24px;
   margin-bottom: 12px;
@@ -207,26 +383,4 @@ html, body {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-}
-
-/* 闪光效果 */
-.flash {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 50;
-}
-
-.flash.active {
-  animation: flash 0.15s ease-out;
-}
-
-@keyframes flash {
-  0% { opacity: 0.8; }
-  100% { opacity: 0; }
 }
