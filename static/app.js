@@ -88,6 +88,8 @@ async function initZoomControl() {
       zoomSlider.step = zoomCapabilities.step || 0.1;
       zoomSlider.value = zoomCapabilities.min;
       updateZoomDisplay(zoomCapabilities.min);
+      // 实际应用最小缩放值，确保摄像头从1x开始
+      await setZoom(zoomCapabilities.min);
       zoomControl.classList.remove('hidden');
       console.log('缩放支持:', zoomCapabilities);
     } else {
@@ -147,10 +149,14 @@ function enterEditMode(imageDataUrl) {
     cropBox.classList.add('hidden');
     btnCrop.classList.remove('active');
     
-    drawEditCanvas();
-    
+    // 先显示 editView，确保容器有尺寸
     cameraView.classList.add('hidden');
     editView.classList.remove('hidden');
+    
+    // 等待下一帧再绘制，确保 DOM 已更新布局
+    requestAnimationFrame(() => {
+      drawEditCanvas();
+    });
   };
   editImage.src = imageDataUrl;
 }
