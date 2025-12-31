@@ -75,30 +75,43 @@ async function initCamera() {
 }
 
 // ============ 缩放控制 ============
+let useNativeZoom = false;  // 是否使用原生缩放
+let currentZoom = 1;        // 当前缩放值
+
 async function initZoomControl() {
-  if (!currentTrack) return;
+  // 始终显示缩放控制
+  zoomSlider.min = 1;
+  zoomSlider.max = 5;
+  zoomSlider.step = 0.1;
+  zoomSlider.value = 1;
+  currentZoom = 1;
+  updateZoomDisplay(1);
+  zoomControl.classList.remove('hidden');
   
-  try {
-    const capabilities = currentTrack.getCapabilities();
-    
-    if (capabilities.zoom) {
-      zoomCapabilities = capabilities.zoom;
-      zoomSlider.min = zoomCapabilities.min;
-      zoomSlider.max = Math.min(zoomCapabilities.max, 10); // 限制最大10倍
-      zoomSlider.step = zoomCapabilities.step || 0.1;
-      zoomSlider.value = zoomCapabilities.min;
-      updateZoomDisplay(zoomCapabilities.min);
-      // 实际应用最小缩放值，确保摄像头从1x开始
-      await setZoom(zoomCapabilities.min);
-      zoomControl.classList.remove('hidden');
-      console.log('缩放支持:', zoomCapabilities);
-    } else {
-      console.log('该摄像头不支持缩放');
-      zoomControl.classList.add('hidden');
+  // 尝试检测原生缩放支持
+  if (currentTrack) {
+    try {
+      const capabilities = currentTrack.getCapabilities();
+      if (capabilities.zoom) {
+        zoomCapabilities = capabilities.zoom;
+        zoomSlider.min = zoomCapabilities.min;
+        zoomSlider.max = Math.min(zoomCapabilities.max, 5);
+        zoomSlider.step = zoomCapabilities.step || 0.1;
+        zoomSlider.value = zoomCapabilities.min;
+        currentZoom = zoomCapabilities.min;
+        updateZoomDisplay(zoomCapabilities.min);
+        // 应用最小缩放
+        await currentTrack.applyConstraints({
+          advanced: [{ zoom: zoomCapabilities.min }]
+        });
+        useNativeZoom = true;
+        console.log('使用原生缩放:', zoomCapabilities);
+      } else {
+        console.log('使用 CSS 缩放 (原生不支持)');
+      }
+    } catch (err) {
+      console.log('使用 CSS 缩放 (检测失败):', err);
     }
-  } catch (err) {
-    console.log('无法获取缩放能力:', err);
-    zoomControl.classList.add('hidden');
   }
 }
 
@@ -107,16 +120,31 @@ function updateZoomDisplay(value) {
 }
 
 async function setZoom(value) {
-  if (!currentTrack || !zoomCapabilities) return;
+  const zoomVal = parseFloat(value);
+  currentZoom = zoomVal;
+  updateZoomDisplay(zoomVal);
   
-  try {
-    await currentTrack.applyConstraints({
-      advanced: [{ zoom: parseFloat(value) }]
-    });
-    updateZoomDisplay(value);
-  } catch (err) {
-    console.error('设置缩放失败:', err);
+  if (useNativeZoom && currentTrack && zoomCapabilities) {
+    // 使用原生缩放
+    try {
+      await currentTrack.applyConstraints({
+        advanced: [{ zoom: zoomVal }]
+      });
+      video.style.transform = '';  // 清除 CSS 缩放
+    } catch (err) {
+      console.error('原生缩放失败，回退到 CSS:', err);
+      useNativeZoom = false;
+      applyCssZoom(zoomVal);
+    }
+  } else {
+    // 使用 CSS 缩放
+    applyCssZoom(zoomVal);
   }
+}
+
+function applyCssZoom(value) {
+  video.style.transform = `scale(${value})`;
+  video.style.transformOrigin = 'center center';
 }
 
 // ============ 拍照 ============
@@ -126,11 +154,25 @@ async function capturePhoto() {
   // 闪光效果
   flashEffect();
   
-  // 捕获图像
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
+  
+  // 如果使用 CSS 缩放，需要裁剪中心区域
+  if (!useNativeZoom && currentZoom > 1) {
+    // 计算裁剪区域
+    const cropW = video.videoWidth / currentZoom;
+    const cropH = video.videoHeight / currentZoom;
+    const cropX = (video.videoWidth - cropW) / 2;
+    const cropY = (video.videoHeight - cropH) / 2;
+    
+    canvas.width = cropW;
+    canvas.height = cropH;
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  } else {
+    // 原生缩放或无缩放，直接捕获
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+  }
   
   // 转换为图片对象
   const imageData = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
