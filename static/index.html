@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SnapPaste">
+  <title>SnapPaste</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231a1a1a' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='%2300d26a'>📷</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 摄像头预览 -->
+    <video id="camera" autoplay playsinline muted></video>
+    
+    <!-- 状态提示 -->
+    <div id="status" class="status hidden"></div>
+    
+    <!-- 拍照按钮 -->
+    <div class="controls">
+      <button id="capture" class="capture-btn" aria-label="拍照">
+        <span class="capture-inner"></span>
+      </button>
+    </div>
+    
+    <!-- 隐藏的 canvas 用于处理图片 -->
+    <canvas id="canvas" style="display: none;"></canvas>
+    
+    <!-- 错误提示（含文件选择备选） -->
+    <div id="error" class="error-overlay hidden">
+      <div class="error-content">
+        <h2>无法访问摄像头</h2>
+        <p id="error-msg">请允许摄像头权限</p>
+        <button id="retry" class="retry-btn">重试</button>
+        <p class="fallback-hint">或选择图片文件：</p>
+        <input type="file" id="file-input" accept="image/*" capture="environment">
+      </div>
+    </div>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>

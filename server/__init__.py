@@ -1,0 +1,1 @@
+# SnapPaste Server Package

@@ -1,0 +1,232 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 摄像头预览 */
+#camera {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+/* 控制区域 */
+.controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 140px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* 拍照按钮 */
+.capture-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.capture-btn:active {
+  transform: scale(0.92);
+}
+
+.capture-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.capture-inner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fff;
+  transition: background 0.2s ease;
+}
+
+.capture-btn:active .capture-inner {
+  background: #ccc;
+}
+
+/* 发送中状态 */
+.capture-btn.sending .capture-inner {
+  background: #00d26a;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* 状态提示 */
+.status {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  z-index: 100;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.status.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
+  pointer-events: none;
+}
+
+.status.sending {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.status.success {
+  background: rgba(0, 210, 106, 0.9);
+}
+
+.status.error {
+  background: rgba(255, 59, 48, 0.9);
+}
+
+/* 错误覆盖层 */
+.error-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(26, 26, 26, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  transition: opacity 0.3s ease;
+}
+
+.error-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.error-content {
+  text-align: center;
+  color: #fff;
+  padding: 20px;
+}
+
+.error-content h2 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: #ff3b30;
+}
+
+.error-content p {
+  font-size: 16px;
+  color: #999;
+  margin-bottom: 24px;
+}
+
+.retry-btn {
+  padding: 14px 40px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: #00d26a;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.retry-btn:active {
+  background: #00b359;
+}
+
+/* 备选文件选择提示 */
+.fallback-hint {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+#file-input {
+  display: block;
+  margin: 0 auto;
+  padding: 12px 20px;
+  font-size: 16px;
+  color: #fff;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#file-input::file-selector-button {
+  padding: 8px 16px;
+  margin-right: 12px;
+  font-size: 14px;
+  color: #fff;
+  background: #00d26a;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 闪光效果 */
+.flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.flash.active {
+  animation: flash 0.15s ease-out;
+}
+
+@keyframes flash {
+  0% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
