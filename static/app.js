@@ -413,10 +413,12 @@ async function sendEditedImage() {
     // Step 2: 如果有裁剪，从旋转后的图片上裁剪
     let finalCanvas;
     if (cropMode && cropRect) {
-      // 计算显示缩放比例（editCanvas 相对于旋转后原图的缩放）
-      const scale = rotatedCanvas.width / editCanvas.width;
+      // cropRect 是相对于 editCanvas 显示尺寸的坐标
+      // 注意：使用 getBoundingClientRect 与 initCropBox/onCropDrag 保持一致
+      const displayRect = editCanvas.getBoundingClientRect();
+      const scale = rotatedCanvas.width / displayRect.width;
       
-      // 将裁剪框坐标转换为旋转后原图坐标
+      // 将裁剪框坐标转换为原图坐标
       const cropX = Math.round(cropRect.x * scale);
       const cropY = Math.round(cropRect.y * scale);
       const cropW = Math.round(cropRect.w * scale);
