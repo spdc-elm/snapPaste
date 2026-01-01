@@ -344,7 +344,7 @@ function onCropDrag(e) {
   const dy = touch.clientY - dragStart.y;
   
   const canvasRect = editCanvas.getBoundingClientRect();
-  const minSize = 50;
+  const minSize = 10;
   
   if (dragType === 'move') {
     cropRect.x = Math.max(0, Math.min(canvasRect.width - cropRect.w, dragStart.rect.x + dx));

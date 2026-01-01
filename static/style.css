@@ -227,7 +227,7 @@ html, body {
 /* 裁剪框 */
 .crop-box {
   position: absolute;
-  border: 2px solid #00d26a;
+  border: 1px solid #00d26a;
   background: transparent;
   cursor: move;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
