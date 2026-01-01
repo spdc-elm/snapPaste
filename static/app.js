@@ -58,9 +58,16 @@ async function initCamera() {
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     
+    // 等待视频元数据加载
     await new Promise((resolve) => {
       video.onloadedmetadata = resolve;
     });
+    
+    // 确保视频开始播放（修复首次启动黑屏问题）
+    await video.play();
+    
+    // 额外等待一帧确保视频流稳定
+    await new Promise(resolve => requestAnimationFrame(resolve));
     
     // 获取视频轨道和缩放能力
     currentTrack = stream.getVideoTracks()[0];
@@ -385,58 +392,45 @@ async function sendEditedImage() {
   showStatus('发送中...', 'sending');
   
   try {
-    // 生成最终图片
-    const finalCanvas = document.createElement('canvas');
-    const ctx = finalCanvas.getContext('2d');
+    // 简化策略：先把旋转应用到原图，再裁剪
+    // 这样裁剪坐标系统就和显示坐标系统一致
     
-    // 计算最终尺寸
     const isRotated = rotation === 90 || rotation === 270;
-    let srcW = editImage.width;
-    let srcH = editImage.height;
+    const srcW = editImage.width;
+    const srcH = editImage.height;
     
+    // Step 1: 创建旋转后的完整图片
+    const rotatedCanvas = document.createElement('canvas');
+    const rotatedCtx = rotatedCanvas.getContext('2d');
+    
+    rotatedCanvas.width = isRotated ? srcH : srcW;
+    rotatedCanvas.height = isRotated ? srcW : srcH;
+    
+    rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+    rotatedCtx.rotate((rotation * Math.PI) / 180);
+    rotatedCtx.drawImage(editImage, -srcW / 2, -srcH / 2);
+    
+    // Step 2: 如果有裁剪，从旋转后的图片上裁剪
+    let finalCanvas;
     if (cropMode && cropRect) {
-      // 计算裁剪区域在原图上的坐标
-      const canvasRect = editCanvas.getBoundingClientRect();
-      const scaleX = (isRotated ? editImage.height : editImage.width) / editCanvas.width;
-      const scaleY = (isRotated ? editImage.width : editImage.height) / editCanvas.height;
+      // 计算显示缩放比例（editCanvas 相对于旋转后原图的缩放）
+      const scale = rotatedCanvas.width / editCanvas.width;
       
-      finalCanvas.width = cropRect.w * scaleX;
-      finalCanvas.height = cropRect.h * scaleY;
+      // 将裁剪框坐标转换为旋转后原图坐标
+      const cropX = Math.round(cropRect.x * scale);
+      const cropY = Math.round(cropRect.y * scale);
+      const cropW = Math.round(cropRect.w * scale);
+      const cropH = Math.round(cropRect.h * scale);
       
-      // 绘制裁剪后的图片
-      ctx.save();
-      ctx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
+      finalCanvas = document.createElement('canvas');
+      finalCanvas.width = cropW;
+      finalCanvas.height = cropH;
       
-      const cropX = cropRect.x * scaleX;
-      const cropY = cropRect.y * scaleY;
-      const cropW = cropRect.w * scaleX;
-      const cropH = cropRect.h * scaleY;
-      
-      // 根据旋转调整源区域
-      let sx, sy, sw, sh;
-      if (rotation === 0) {
-        sx = cropX; sy = cropY; sw = cropW; sh = cropH;
-      } else if (rotation === 90) {
-        sx = cropY; sy = editImage.height - cropX - cropW; sw = cropH; sh = cropW;
-      } else if (rotation === 180) {
-        sx = editImage.width - cropX - cropW; sy = editImage.height - cropY - cropH; sw = cropW; sh = cropH;
-      } else {
-        sx = editImage.width - cropY - cropH; sy = cropX; sw = cropH; sh = cropW;
-      }
-      
-      const drawW = isRotated ? finalCanvas.height : finalCanvas.width;
-      const drawH = isRotated ? finalCanvas.width : finalCanvas.height;
-      ctx.drawImage(editImage, sx, sy, sw, sh, -drawW / 2, -drawH / 2, drawW, drawH);
-      ctx.restore();
+      const ctx = finalCanvas.getContext('2d');
+      ctx.drawImage(rotatedCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
     } else {
-      // 无裁剪，只应用旋转
-      finalCanvas.width = isRotated ? srcH : srcW;
-      finalCanvas.height = isRotated ? srcW : srcH;
-      
-      ctx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.drawImage(editImage, -srcW / 2, -srcH / 2);
+      // 无裁剪，直接使用旋转后的图片
+      finalCanvas = rotatedCanvas;
     }
     
     // 转换为 Blob 并上传
